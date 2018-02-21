@@ -6,6 +6,8 @@ Ensure you can run:
 
 Ensure you can run:
   ansible-playbook playbook.yml
+or
+  vagrant provision
 
 Todo:
 - disable selinux

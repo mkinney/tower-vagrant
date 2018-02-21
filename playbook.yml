@@ -5,6 +5,37 @@
   gather_facts: false
 
   tasks:
+
     - name: Hello
       debug:
         msg: hello
+
+    - name: Disable SELinux
+      selinux:
+        state: disabled 
+      register: selinux
+
+    - name: Need to reboot?
+      debug:
+        msg: Yes
+      when: selinux.changed == true
+
+    - name: Reboot if we need to
+      shell: sleep 2 && /sbin/shutdown -r now
+      async: 1
+      poll: 0
+      when: selinux.changed == true
+
+    - name: Wait for reboot to complete
+      wait_for:
+        timeout: 300
+        host: "{{ ansible_ssh_host }}"
+        port: 22
+        delay: 10
+      delegate_to: localhost
+      when: selinux.changed == true
+      become: false
+
+    - name: Bye
+      debug:
+        msg: bye
