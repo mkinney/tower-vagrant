@@ -1,0 +1,127 @@
+---
+
+- hosts: tower
+  become: true
+
+  vars:
+    tower_username: admin
+    tower_password: password
+
+  tasks:
+
+    - name: Hello
+      debug:
+        msg: hello
+
+# Note: Can only have one org using the 10 user demo license (so this won't work) :-(
+#    - name: Create tower organization
+#      tower_organization:
+#        name: "Foo"
+#        tower_username: "{{ tower_username }}"
+#        tower_password: "{{ tower_password }}"
+#        description: "Foo bar organization"
+#        state: present
+#
+    - name: Create the Red Team
+      tower_team:
+        name: Red Team
+        description: Red Team Description
+        organization: Default
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
+
+    - name: Create the Red playbook directory
+      file:
+        path: /var/lib/awx/projects/red
+        state: directory
+
+# TODO Why is this not idempotent?
+# TODO Why is this failing now?
+    - name: Create the Red project
+      tower_project:
+        name: red
+        local_path: /var/lib/awx/projects/red
+        description: Red project
+        organization: Default
+        scm_type: manual
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
+
+# TODO Why is this not idempotent?
+# TODO How do you add a user to a project? (using ansible module)
+    - name: Create the Red Team Captain
+      tower_user:
+        username: captainred
+        password: password
+        email: captainred@example.org
+        first_name: Captain
+        last_name: Red
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
+
+    - name: Add Red Inventory
+      tower_inventory:
+        name: Red Inventory
+        description: Red Inventory
+        organization: Default
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
+
+    - name: Add hosts to Tower
+      tower_host:
+        name: "{{ item }}"
+        description: Red Host Group
+        inventory: Red Inventory
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
+      with_items:
+        - host1
+        - host2
+
+# TODO improve this
+    - name: Copy the host1 pri key to tower 
+      copy:
+        src: .vagrant/machines/host1/vmware_fusion/private_key
+        dest: /opt/host1prikey
+        owner: root
+        group: root
+        mode: 0400
+
+    - name: Copy the host2 pri key to tower 
+      copy:
+        src: .vagrant/machines/host2/vmware_fusion/private_key
+        dest: /opt/host2prikey
+        owner: root
+        group: root
+        mode: 0400
+
+# TODO fails with credential-type is required
+#    - name: Add host1 credential
+#      tower_credential:
+#        name: host1_pri_key
+#        kind: ssh 
+#        description: host1 private key
+#        become_username: vagrant
+#        ssh_key_data: /opt/host1prikey
+#        organization: Default
+#        tower_username: "{{ tower_username }}"
+#        tower_password: "{{ tower_password }}"
+#        state: present
+#
+#    - name: Add host2 credential
+#      tower_credential:
+#        name: host2_pri_key
+#        kind: ssh
+#        description: host2 private key
+#        become_username: vagrant
+#        ssh_key_data: /opt/host2prikey
+#        organization: Default
+#        tower_username: "{{ tower_username }}"
+#        tower_password: "{{ tower_password }}"
+#        #tower_verify_ssl: False
+#        state: present

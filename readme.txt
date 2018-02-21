@@ -4,6 +4,7 @@ This assumes:
   Using VMware Fusion Professional Version 10.0.1 (6754183).
 - vagrant for vmware_fusion is installed and licensed
   Using vagrant 1.9.7.
+- (optional) you have python virtual environment installed
 
 This is not a fully-baked Ansible tower repo. It's enough to get it installed.
 
@@ -16,6 +17,9 @@ The vagrant file should do most of the work. If the version changes, you'll have
 Once provisioned, do the following:
   vagrant ssh tower
   sudo su -
+  easy_install pip
+  pip install -U pip
+  pip install -U ansible-tower-cli
   cd /opt/ansible-tower-setup-bundle-3.2.3-1.el7
   ./setup.sh
 
@@ -27,6 +31,14 @@ It will prompt for license. Add the license file. Note: It appears that you can 
 the environment and the license will work on a newly created environment.
 
 Check out: https://192.168.1.100/api/v2
+
+
+(optional) Once you have Tower licensed, you should be able to add some Tower configs.
+For this, run these commands:
+  virtualenv venv
+  source venv/bin/activate
+  pip install ansible ansible-tower-cli  (or 'pip install -r requirements.txt')
+  ansible-playbook tower.yml
 
 ---
 
