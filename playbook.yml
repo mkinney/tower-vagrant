@@ -58,6 +58,35 @@
         name: ansible
         state: latest
 
+    # Note: This "creates" will probably change... and the dir is hard coded multiple times... sorry
+    - name: Download and extract ansible tower setup
+      unarchive:
+        src: https://releases.ansible.com/ansible-tower/setup-bundle/ansible-tower-setup-bundle-latest.el7.tar.gz
+        dest: /opt
+        creates: /opt/ansible-tower-setup-bundle-3.2.3-1.el7/setup.sh
+        remote_src: yes
+
+    - name: Set admin password for install
+      lineinfile:
+        path: /opt/ansible-tower-setup-bundle-3.2.3-1.el7/inventory
+        regexp: "^admin_password=''"
+        line: "admin_password='password'"
+        backrefs: yes
+
+    - name: Set pg password for install
+      lineinfile:
+        path: /opt/ansible-tower-setup-bundle-3.2.3-1.el7/inventory
+        regexp: "^pg_password=''"
+        line: "pg_password='password'"
+        backrefs: yes
+
+    - name: Set rabbitmq password for install
+      lineinfile:
+        path: /opt/ansible-tower-setup-bundle-3.2.3-1.el7/inventory
+        regexp: "^rabbitmq_password=''"
+        line: "rabbitmq_password='password'"
+        backrefs: yes
+
     - name: Bye
       debug:
         msg: bye
