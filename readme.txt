@@ -10,5 +10,4 @@ or
   vagrant provision
 
 Todo:
-- disable selinux
-- enable extras in centos7
+- setup inventory file
