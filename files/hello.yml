@@ -1,0 +1,10 @@
+---
+
+- hosts: all
+  become: true
+
+  tasks:
+
+    - name: Hello
+      debug:
+        msg: hello

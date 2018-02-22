@@ -13,6 +13,63 @@
       debug:
         msg: hello
 
+    - name: Get the organization id
+      uri:
+        url: "https://192.168.1.100/api/v2/organizations/"
+        method: GET
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+      register: get_org
+
+    - name: Show the get_org variable
+      debug:
+        var: get_org.json.results.0.id
+
+    - name: Set the organization id
+      set_fact:
+        org_id: "{{ get_org.json.results.0.id|int }}"
+
+    - name: Show the org_id
+      debug:
+        var: org_id
+
+    - name: See if host1_pri_key exists
+      uri:
+        url: "https://192.168.1.100/api/v2/credentials/?name=host1_pri_key"
+        method: GET
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+      register: get_host1_pri_key
+
+    - name: Show get_host1_pri_key.json.count
+      debug:
+        var: get_host1_pri_key.json.count
+
+    - name: Add host1_pri_key
+      uri:
+        url: "https://192.168.1.100/api/v2/credentials/"
+        method: POST
+        body:
+          name: "host1_pri_key"
+          description: "host1 private key"
+          organization: "{{ org_id }}"
+          credential_type: 1
+          ssh_key_data: "{{ lookup('file', '.vagrant/machines/host1/vmware_fusion/private_key') }}"
+          inputs:
+            username: "vagrant"
+            become_method: "sudo"
+        body_format: json
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+        status_code: 201
+      when: get_host1_pri_key.json.count == 0
+
 # Note: Can only have one org using the 10 user demo license (so this won't work) :-(
 #    - name: Create tower organization
 #      tower_organization:
@@ -36,18 +93,24 @@
         path: /var/lib/awx/projects/red
         state: directory
 
+    - name: Copy the hello.yml playbook
+      copy:
+        src: hello.yml
+        dest: /var/lib/awx/projects/red/hello.yml
+
 # TODO Why is this not idempotent?
-# TODO Why is this failing now?
+# TODO Why does this fail on second runs? Temp adding ignore_errors so it continues
     - name: Create the Red project
       tower_project:
         name: red
-        local_path: /var/lib/awx/projects/red
+        local_path: red
         description: Red project
         organization: Default
         scm_type: manual
         tower_username: "{{ tower_username }}"
         tower_password: "{{ tower_password }}"
         state: present
+      ignore_errors: true
 
 # TODO Why is this not idempotent?
 # TODO How do you add a user to a project? (using ansible module)
@@ -71,18 +134,6 @@
         tower_password: "{{ tower_password }}"
         state: present
 
-    - name: Add hosts to Tower
-      tower_host:
-        name: "{{ item }}"
-        description: Red Host Group
-        inventory: Red Inventory
-        tower_username: "{{ tower_username }}"
-        tower_password: "{{ tower_password }}"
-        state: present
-      with_items:
-        - host1
-        - host2
-
 # TODO improve this
     - name: Copy the host1 pri key to tower 
       copy:
@@ -90,7 +141,7 @@
         dest: /opt/host1prikey
         owner: root
         group: root
-        mode: 0400
+        mode: 0666
 
     - name: Copy the host2 pri key to tower 
       copy:
@@ -98,9 +149,34 @@
         dest: /opt/host2prikey
         owner: root
         group: root
-        mode: 0400
+        mode: 0666
+
+    - name: Add host1 to Tower
+      tower_host:
+        name: host1
+        description: Red Host Group
+        inventory: Red Inventory
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
+        variables:
+          ansible_ssh_host: 192.168.1.101
+          ansible_ssh_private_key_file: /opt/host1prikey
+
+    - name: Add host2 to Tower
+      tower_host:
+        name: host2
+        description: Red Host Group
+        inventory: Red Inventory
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
+        variables:
+          ansible_ssh_host: 192.168.1.102
+          ansible_ssh_private_key_file: /opt/host2prikey
 
 # TODO fails with credential-type is required
+#  Note: That is why creating the host1_pri_key above via REST api.
 #    - name: Add host1 credential
 #      tower_credential:
 #        name: host1_pri_key
@@ -125,3 +201,19 @@
 #        tower_password: "{{ tower_password }}"
 #        #tower_verify_ssl: False
 #        state: present
+
+
+# TODO Not sure why idempotent
+# Credential Type: Machine, Organization: Default, Username: vagrant, SSH Private Key: <contents of pri key for host1>
+# Name: host1prikey, Privilege escalation: sudo
+    - name: Create hello job template
+      tower_job_template:
+        name: hello
+        job_type: run
+        inventory: Red Inventory
+        project: red
+        playbook: hello.yml
+        machine_credential: "host1_pri_key"
+        tower_username: "{{ tower_username }}"
+        tower_password: "{{ tower_password }}"
+        state: present
