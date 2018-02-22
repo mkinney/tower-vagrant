@@ -1,9 +1,20 @@
 This assumes:
 - running on decent mac (because we're going to create a 4cpu/4gb machine instance, and 2 smaller instances)
+
 - vmware fusion is installed and licensed
-  Using VMware Fusion Professional Version 10.0.1 (6754183).
+  Using VMware Fusion Professional Version 10.1.1 (7520154)
+
 - vagrant for vmware_fusion is installed and licensed
-  Using vagrant 1.9.7.
+
+  vagrant --version
+  Vagrant 2.0.2
+
+  $ vagrant plugin list
+  vagrant-share (1.1.9)
+    - Version Constraint: > 0
+    vagrant-vmware-fusion (5.0.4)
+    - Version Constraint: > 0
+
 - (optional) you have python virtual environment installed
 
 This is not a fully-baked Ansible tower repo. It's enough to get it installed.
@@ -52,3 +63,4 @@ or
 
 Download tower here: https://releases.ansible.com/ansible-tower/setup-bundle/
 
+Good API video: https://www.ansible.com/exploring-and-using-the-ansible-tower-rest-api

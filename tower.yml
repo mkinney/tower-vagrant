@@ -100,17 +100,49 @@
 
 # TODO Why is this not idempotent?
 # TODO Why does this fail on second runs? Temp adding ignore_errors so it continues
-    - name: Create the Red project
-      tower_project:
-        name: red
-        local_path: red
-        description: Red project
-        organization: Default
-        scm_type: manual
-        tower_username: "{{ tower_username }}"
-        tower_password: "{{ tower_password }}"
-        state: present
-      ignore_errors: true
+#    - name: Create the Red project
+#      tower_project:
+#        name: red
+#        local_path: red
+#        description: Red project
+#        organization: Default
+#        scm_type: manual
+#        tower_username: "{{ tower_username }}"
+#        tower_password: "{{ tower_password }}"
+#        state: present
+#      ignore_errors: true
+
+    - name: See if red project exists
+      uri:
+        url: "https://192.168.1.100/api/v2/projects/?name=red"
+        method: GET
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+      register: get_red_project
+
+    - name: Show get_red_project.json.count
+      debug:
+        var: get_red_project.json.count
+
+    - name: Add red project
+      uri:
+        url: "https://192.168.1.100/api/v2/projects/"
+        method: POST
+        body:
+          name: "red"
+          description: "red project"
+          local_path: "red"
+          organization: "{{ org_id }}"
+          scm_type: ""
+        body_format: json
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+        status_code: 201
+      when: get_red_project.json.count == 0
 
 # TODO Why is this not idempotent?
 # TODO How do you add a user to a project? (using ansible module)
