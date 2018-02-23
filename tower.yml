@@ -87,6 +87,13 @@
         tower_username: "{{ tower_username }}"
         tower_password: "{{ tower_password }}"
         state: present
+      register: team
+      tags: team
+
+    - name: Show the team.id
+      debug:
+        var: team.id
+      tags: team
 
     - name: Create the Red playbook directory
       file:
@@ -166,7 +173,9 @@
         force_basic_auth: yes
         validate_certs: false
       register: get_red_captain
-      tags: user
+      tags:
+        - user
+        - team
 
     - name: Show get_red_captain.json.count
       debug:
@@ -178,10 +187,19 @@
 #        var: get_red_captain
 #      tags: user
 
-    - name: Show get_red_captain id
+    - name: Set the captain id
+      set_fact:
+        captain_id: "{{ get_red_captain.json.results.0.id | int }}"
+      tags:
+        - user
+        - team
+
+    - name: Show get_red_captain id (both values)
       debug:
-        var: get_red_captain.json.results.0.id
-      tags: user
+        var: get_red_captain.json.results.0.id, captain_id
+      tags:
+        - user
+        - team
 
     - name: Add Red Captain
       uri:
@@ -261,7 +279,6 @@
 #        var: get_member
 #      tags: role
 
-      # post id for user to api/v2/roles/3/users/
     - name: See if Red Captain is member in org
       uri:
         url: "https://192.168.1.100/api/v2/roles/3/users/?id={{ get_red_captain.json.results.0.id }}"
@@ -292,7 +309,43 @@
         status_code: 201
       when: get_red_captain_org.json.count == 0
       tags: user
- 
+
+    - name: See if Captain Red is on Red Team
+      uri:
+        url: "https://192.168.1.100/api/v2/teams/{{ team.id }}/users/id={{ get_red_captain.json.results.0.id }}"
+        method: GET
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+        status_code: 200,404
+      register: get_cap_on_team
+      tags: team
+
+    - name: Show get_cap_on_team.status
+      debug:
+        var: get_cap_on_team.status
+      tags: team
+
+    - name: Add Red Captain to Red Team
+      uri:
+        url: "https://192.168.1.100/api/v2/teams/{{ team.id }}/users/"
+        method: POST
+        # TODO id must be an integer
+        #body:
+        #id: "{{ captain_id|int }}"
+        #body_format: json
+        # works body: '{ "id":2 }'
+        body: "{ \"id\":{{ captain_id }} }"
+        body_format: json
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+        status_code: 201,204
+      when: get_cap_on_team.status == 404
+      tags: team
+
     - name: Add Red Inventory
       tower_inventory:
         name: Red Inventory
@@ -303,7 +356,7 @@
         state: present
 
 # TODO improve this
-    - name: Copy the host1 pri key to tower 
+    - name: Copy the host1 pri key to tower
       copy:
         src: .vagrant/machines/host1/vmware_fusion/private_key
         dest: /opt/host1prikey
@@ -311,7 +364,7 @@
         group: root
         mode: 0666
 
-    - name: Copy the host2 pri key to tower 
+    - name: Copy the host2 pri key to tower
       copy:
         src: .vagrant/machines/host2/vmware_fusion/private_key
         dest: /opt/host2prikey
@@ -348,7 +401,7 @@
 #    - name: Add host1 credential
 #      tower_credential:
 #        name: host1_pri_key
-#        kind: ssh 
+#        kind: ssh
 #        description: host1 private key
 #        become_username: vagrant
 #        ssh_key_data: /opt/host1prikey
