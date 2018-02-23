@@ -146,17 +146,94 @@
 
 # TODO Why is this not idempotent?
 # TODO How do you add a user to a project? (using ansible module)
-    - name: Create the Red Team Captain
-      tower_user:
-        username: captainred
-        password: password
-        email: captainred@example.org
-        first_name: Captain
-        last_name: Red
-        tower_username: "{{ tower_username }}"
-        tower_password: "{{ tower_password }}"
-        state: present
+#    - name: Create the Red Team Captain
+#      tower_user:
+#        username: captainred
+#        password: password
+#        email: captainred@example.org
+#        first_name: Captain
+#        last_name: Red
+#        tower_username: "{{ tower_username }}"
+#        tower_password: "{{ tower_password }}"
+#        state: present
 
+    - name: See if Red Captain exists
+      uri:
+        url: "https://192.168.1.100/api/v2/users/?username=captainred"
+        method: GET
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+      register: get_red_captain
+      tags: user
+
+    - name: Show get_red_captain.json.count
+      debug:
+        var: get_red_captain.json.count
+      tags: user
+
+#    - name: Show get_red_captain
+#      debug:
+#        var: get_red_captain
+#      tags: user
+
+    - name: Show get_red_captain id
+      debug:
+        var: get_red_captain.json.results.0.id
+      tags: user
+
+    - name: Add Red Captain
+      uri:
+        url: "https://192.168.1.100/api/v2/users/"
+        method: POST
+        body:
+          username: "red"
+          first_name: "Captain"
+          last_name: "Red"
+          email: "captainred@example.org"
+          password: password
+        body_format: json
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+        status_code: 201
+      when: get_red_captain.json.count == 0
+      tags: user
+
+    - name: See if Red Captain is in org
+      uri:
+        url: "https://192.168.1.100/api/v2/organizations/1/users/?id={{ get_red_captain.json.results.0.id }}"
+        method: GET
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+      register: get_red_captain_org
+      tags: user
+
+    - name: Show get_red_captain_org.json.count
+      debug:
+        var: get_red_captain_org.json.count
+      tags: user
+
+    - name: Add Red Captain to Org
+      uri:
+        url: "https://192.168.1.100/api/v2/organizations/users/"
+        method: POST
+        body:
+          id: get_red_captain.json.results.0.id
+        body_format: json
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+        status_code: 201
+      when: get_red_captain_org.json.count == 0
+      tags: user
+
+ 
     - name: Add Red Inventory
       tower_inventory:
         name: Red Inventory

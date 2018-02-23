@@ -18,6 +18,7 @@ This assumes:
 - (optional) you have python virtual environment installed
 
 This is not a fully-baked Ansible tower repo. It's enough to get it installed.
+The intent is to have a local Tower instance to experiment with the REST API.
 
 To start:
   vagrant up --provider=vmware_fusion
@@ -50,6 +51,8 @@ For this, run these commands:
   source venv/bin/activate
   pip install ansible ansible-tower-cli  (or 'pip install -r requirements.txt')
   ansible-playbook tower.yml
+    or
+  ansible-playbook tower.yml --tags=user  (if you want to just add the user)
 
 ---
 
