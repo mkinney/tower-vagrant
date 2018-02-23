@@ -233,6 +233,65 @@
       when: get_red_captain_org.json.count == 0
       tags: user
 
+# TODO This should work, but complains about tower_username. Huh?
+#    - name: Add Captain Red to Red Team
+#      tower_role:
+#        user: captainred
+#        target_team: "Red Team"
+#        role: member
+#        tower_username: "{{ tower_username }}"
+#        tower_password: "{{ tower_password }}"
+#        state: present
+#      tags: user
+
+      # TODO not sure why this is not working... will hard code to 3 for now
+#    - name: Get member role
+#      uri:
+#        url: "https://192.168.1.100/api/v2/roles/name=Member"
+#        method: GET
+#        user: "{{ tower_username }}"
+#        password: "{{ tower_password }}"
+#        force_basic_auth: yes
+#        validate_certs: false
+#      register: get_member
+#      tags: role
+
+#    - name: Show get_member
+#      debug:
+#        var: get_member
+#      tags: role
+
+      # post id for user to api/v2/roles/3/users/
+    - name: See if Red Captain is member in org
+      uri:
+        url: "https://192.168.1.100/api/v2/roles/3/users/?id={{ get_red_captain.json.results.0.id }}"
+        method: GET
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+      register: get_red_captain_org
+      tags: user
+
+    - name: Show get_red_captain_org.json.count
+      debug:
+        var: get_red_captain_org.json.count
+      tags: user
+
+    - name: Add Red Captain to org
+      uri:
+        url: "https://192.168.1.100/api/v2/roles/3/users/"
+        method: POST
+        body:
+          id: get_red_captain.json.results.0.id
+        body_format: json
+        user: "{{ tower_username }}"
+        password: "{{ tower_password }}"
+        force_basic_auth: yes
+        validate_certs: false
+        status_code: 201
+      when: get_red_captain_org.json.count == 0
+      tags: user
  
     - name: Add Red Inventory
       tower_inventory:
